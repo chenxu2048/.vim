@@ -1,0 +1,13 @@
+{
+    "coc.preferences.formatOnSaveFiletypes": [
+        "c++",
+        "json",
+        "go",
+        "c",
+        "python"
+    ],
+    "json.schemaDownload.enable": true,
+    "go.goplsEnv": {
+        "GOPROXY": "https://goproxy.cn,direct"
+    }
+}
