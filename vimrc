@@ -10,7 +10,7 @@
 " UTILITY FUNCTIONS {{{
 " FUNCTION s:get_visual_selection, from xolox: {{{
 "       https://stackoverflow.com/a/6271254
-function! s:get_visual_selection()
+function! s:get_visual_selection(oneline)
     " Why is this not a built-in Vim script function?!
     let [line_start, column_start] = getpos("'<")[1:2]
     let [line_end, column_end] = getpos("'>")[1:2]
@@ -20,7 +20,60 @@ function! s:get_visual_selection()
     endif
     let lines[-1] = lines[-1][: column_end - (&selection == 'inclusive' ? 1 : 2)]
     let lines[0] = lines[0][column_start - 1:]
-    return join(lines, "\n")
+    if a:oneline == 1
+        return escape(lines[0], '"')
+    endif
+    return escape(join(lines, "\n"), '"')
+endfunction
+" }}}
+
+" FUNCTION s:run_rg_command run leaderf rg in visual {{{
+function s:run_rg_command(...)
+    let l:selected = s:get_visual_selection(1)
+    let l:rg = 'rg ' . join(a:000, ' ') . ' -e "' . l:selected . '"'
+    let l:glob = get(s:, "rg_glob", [])
+    if len(l:glob) != 0
+        let l:rg = join([l:rg] + l:glob, " -g ")
+    endif
+    call leaderf#Any#start(0, l:rg)
+endfunction
+" }}}
+
+" FUNCTION s:set_rg_glob set leaderf rg file pattern {{{
+function s:set_rg_glob()
+    let l:prev = get(s:, "rg_glob_raw", "*")
+    let l:glob = input("Setting rg glob filter: ", l:prev)
+    if l:glob =~ '^\s*$'
+        let s:rg_glob = []
+        let s:rg_glob_raw = "*"
+        return
+    endif
+    let s:rg_glob_raw = l:glob
+    let s:rg_glob = map(split(glob, '[ ,]\+'), 'v:val =~ ''^".*"$'' ? v:val : ''"''.v:val.''"''')
+endfunction
+" }}}
+
+" FUNCTION s:run_rg_interactive run leaderf rg interactive {{{
+function s:run_rg_interactive(...)
+    try
+        echohl Question
+        let l:pattern = input('Search pattern: ')
+        let l:pattern = escape(l:pattern,'"')
+        let l:glob = get(s:, 'rg_glob', [])
+        let g:glob = l:glob
+        let l:rg_cmd = [ 'rg' ] + a:000
+        if l:pattern !~ '^\s*$'
+            let l:rg_cmd += [ '-e', '"' . l:pattern . '"']
+        endif
+        if len(l:glob) != 0
+            let l:glob_args = l:glob->copy()->map({_, val -> [ '-g', val ]})
+            let l:rg_cmd += flatten(l:glob_args)
+            let g:rg_cmd = l:rg_cmd
+        endif
+        call leaderf#Any#start(0, join(l:rg_cmd, ' '))
+    finally
+        echohl None
+    endtry
 endfunction
 " }}}
 
@@ -37,6 +90,36 @@ function s:nerdtree_focus_or_close()
         NERDTreeClose
     else
         NERDTreeFocus
+    endif
+endfunction
+" }}}
+
+" FUNCTION s:undotree_focus_or_close {{{
+function s:undotree_focus_or_close()
+    if expand("%") =~# "^undotree_"
+        UndotreeHide
+    else
+        UndotreeShow
+        UndotreeFocus
+    endif
+endfunction
+" }}}
+
+" FUNCTION s:check_large_file {{{
+function! s:check_large_file(large_file)
+    " Set options:
+    "   eventignore+=FileType (no syntax highlighting etc
+    "   assumes FileType always on)
+    "   noswapfile (save copy of file)
+    "   bufhidden=unload (save memory when other file is viewed)
+    "   buftype=nowritefile (is read-only)
+    "   undolevels=-1 (no undo possible)
+    let l:filename=expand("<afile>")
+    if getfsize(l:filename) > a:large_file
+        set eventignore+=FileType
+        setlocal noswapfile bufhidden=unload buftype=nowrite undolevels=-1
+    else
+        set eventignore-=FileType
     endif
 endfunction
 " }}}
@@ -61,6 +144,8 @@ function! s:plugin_load() abort
 
     " vim plugin list {{{
     call plug#begin(l:vim_plug_home)
+        Plug 'chenxu2048/leaderf-enhanced'
+        Plug 'Yggdroot/LeaderF', { 'do': ':LeaderfInstallCExtension' }
         Plug 'airblade/vim-gitgutter'
         Plug 'junegunn/fzf.vim'
         Plug 'junegunn/vim-plug'
@@ -90,13 +175,9 @@ endfunction
 
 " FUNCTION s:gui_config loads configuration for gvim {{{
 function! s:gui_config()
-    set guifont=NotoMono\ Nerd\ Font\ Mono\ Patched\ 12,NotoMono\ Nerd\ Font\ \Mono\ Regular\ 12,Noto\ Mono\ for\ Powerline\ 12
-    set guifont=NotoMono\ Nerd\ Font\ \Mono\ Regular\ 12,Noto\ Mono\ for\ Powerline\ 12
+    set guifont=NotoMono\ Nerd\ Font\ Mono\ 12
     set guifontwide=Noto\ Sans\ CJK\ SC\ 12
-    set guioptions-=T
-    set guioptions-=L
-    set guioptions-=r
-    set guioptions-=m
+    set guioptions=acdiMk
     set guiheadroom=0
 endfunction
 " }}}
@@ -131,17 +212,32 @@ function! s:editor_config()
     set showcmd
     set hidden
 
+    set foldmethod=syntax
+    set foldlevel=99
+    set undodir=~/.cache/vim/undo//
+    set backupdir=~/.cache/vim/backup//
+    set directory=~/.cache/vim/swap//
+    set undofile
+    set undolevels=200
+
+    set backspace=indent,eol,start
     " set cursor
     set cursorcolumn
     set cursorline
-    highlight CursorLine   cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
-    highlight CursorColumn cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
+    " highlight CursorLine   cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
+    " highlight CursorColumn cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
 
     " sync register ", reister + with register 0
-    set clipboard^=unnamed
+    set clipboard^=unnamedplus
     augroup HijackNetrw
         autocmd BufEnter,VimEnter * call <SID>hijack_and_cd(expand('<amatch>'))
     augroup END
+
+    let g:large_file = 10 * 1024 * 1024 " 10MB
+    augroup LargeFile
+        au BufReadPre * call <SID>check_large_file(g:large_file)
+    augroup END
+    autocmd TerminalOpen * setlocal nonumber norelativenumber
 endfunction
 " }}}
 
@@ -152,6 +248,9 @@ function! s:keymap_config()
     noremap <Leader>xi :PlugInstall<CR>
     noremap <Leader>xu :PlugUpdate<CR>
     noremap <Leader>xd :PlugClean<CR>
+
+    " undotree
+    noremap <silent> <Leader>u :<C-U>call <SID>undotree_focus_or_close()<CR>
 
     " airline
     nmap <leader>1 <Plug>AirlineSelectTab1
@@ -165,11 +264,11 @@ function! s:keymap_config()
     nmap <leader>9 <Plug>AirlineSelectTab9
 
     " NERDTree
-    noremap <Leader>E :NERDTreeClose<CR>
-    noremap <Leader>l :NERDTreeFind<CR>
-    noremap <Leader>e :call <SID>nerdtree_focus_or_close()<CR>
+    noremap <silent> <Leader>e :call <SID>nerdtree_focus_or_close()<CR>
+    noremap <silent> <Leader><Leader>e :NERDTreeFind<CR>
+    noremap <silent> <Leader>E :NERDTreeClose<CR>
     " reset NERDTree
-    noremap <Leader><Leader>e <C-w>31\|
+    noremap <silent> <Leader><Leader>E <C-w>31\|
 
     " coc
     nmap <Leader>cr <Plug>(coc-rename)
@@ -180,6 +279,8 @@ function! s:keymap_config()
     nmap <Leader>gr <Plug>(coc-references)
     nmap <Leader>gd <Plug>(coc-definition)
     nmap <Leader>gi <Plug>(coc-implementation)
+    nmap ]e <Plug>(coc-diagnostic-next-error)
+    nmap [e <Plug>(coc-diagnostic-prev-error)
 
     nmap <C-f> <Plug>(coc-format)
     xmap <C-f> <Plug>(coc-format-selected)
@@ -195,26 +296,46 @@ function! s:keymap_config()
     inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
     inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
+    " LeaderF
+    nnoremap <silent> <Leader><Leader>f :<C-U>call <SID>set_rg_glob()<CR>
+    nnoremap <silent> <Leader>f         :<C-U>call <SID>run_rg_interactive()<CR>
+    nnoremap <silent> <Leader>F         :<C-U>call <SID>run_rg_interactive('-w')<CR>
+    nnoremap <silent> <Leader>lb        :<C-U>LeaderfBuffer<CR>
+    nnoremap <silent> <Leader>lc        :<C-U>LeaderfCommand<CR>
+    nnoremap <silent> <Leader>lw        :<C-U>LeaderfWindow<CR>
+    nnoremap <silent> <leader>lh        :<C-U>LeaderfHelp<CR>
+    nnoremap <silent> <Leader>p         :<C-U>LeaderfFile<CR>
+    nnoremap <silent> <leader>/         :<C-U>LeaderfLine<CR>
+
+    xnoremap <silent> <Leader>F         :<C-U>call <SID>run_rg_command("-w", "-F")<CR>
+    xnoremap <silent> <Leader>R         :<C-U>call <SID>run_rg_command("-w")<CR>
+    xnoremap <silent> <Leader>f         :<C-U>call <SID>run_rg_command("-F")<CR>
+    xnoremap <silent> <Leader>r         :<C-U>call <SID>run_rg_command()<CR>
+    xnoremap <silent> <Leader>/         :<C-U>Leaderf line --input "<C-R>=<SID>get_visual_selection(1)<CR>"<CR>
+    xnoremap <silent> <Leader>p         :<C-U>Leaderf file --input "<C-R>=<SID>get_visual_selection(1)<CR>"<CR>
+
+    noremap <silent> <Leader>lm        :<C-U>Leaderf map<CR>
+
     " fzf
-    nnoremap <Leader>p :FZF<CR>
-    nnoremap <Leader>f :Rg<CR>
-    xnoremap <Leader>f <Esc>:Rg <C-R>=<SID>get_visual_selection()<CR><CR>
+    " nnoremap <Leader>p :FZF<CR>
+    " nnoremap <Leader>f :Rg<CR>
+    " xnoremap <Leader>f <Esc>:Rg <C-R>=<SID>get_visual_selection()<CR><CR>
     nmap <Leader>zm <Plug>(fzf-maps-n)
     xmap <Leader>zm <Plug>(fzf-maps-x)
     imap <Leader>zm <Plug>(fzf-maps-i)
-
-    nnoremap <Leader>zb :Buffers<CR>
     nnoremap <Leader>zr :Command<CR>
-    nnoremap <Leader>zg :GitFiles?<CR>
     " KEMAP EXTENSION END }}}
 
     " KEYMAP EDITOR {{{
     " paste using ctrl-p
-    inoremap <C-p> <Esc>"*pa
-    cnoremap <C-p> <C-r>*
+    inoremap <C-p> <Esc>"+pa
+    cnoremap <C-p> <C-r>+
     " paste using ctrl-v
-    inoremap <C-v> <Esc>"*pa
-    cnoremap <C-v> <C-r>*
+    inoremap <C-v> <Esc>"+pa
+    cnoremap <C-v> <C-r>+
+
+    tnoremap <C-S-v> <C-W>"+
+    tnoremap <C-Esc> <C-W>N
 
     " sort
     vnoremap <C-s> :sort<CR>
@@ -232,15 +353,28 @@ function! s:keymap_config()
     noremap <PageUp> <Nop>
     noremap <PageDown> <Nop>
 
-    " I hate q@recording :-\
-    nnoremap <Leader><Leader>Q q
+    nnoremap <C-P> gT
+    nnoremap <C-N> gt
+
+    nnoremap <C-Right> <C-w>l
+    nnoremap <C-Left> <C-w>h
+    nnoremap <C-Up> <C-w>k
+    nnoremap <C-Down> <C-w>j
+
+    " I hate Q to Ex mode :-\
+    nnoremap <Leader><Leader>Q Q
+    nnoremap Q <Nop>
+
+    " I hate q@recording, too :-\
+    nnoremap <Leader><Leader>q q
     nnoremap q <Nop>
 
     " reload vimrc
-    noremap <Leader><Leader>v :source ~/.vim/vimrc<CR>
+    noremap <silent> <Leader><Leader>v :<C-U>source ~/.vim/vimrc<CR>
+    noremap <silent> <Leader>v :<C-U>tabedit ~/.vim/vimrc<CR>
     " exit all
-    noremap <Leader><Leader>q :qa!<CR>
-    noremap <Leader>w :w<CR>
+    noremap <silent> <Leader><C-q> :<C-U>qa!<CR>
+    noremap <silent> <Leader>w :<C-U>w<CR>
     " KEYMAP EDITOR END }}}
 endfunction
 " }}}
@@ -250,6 +384,9 @@ function! s:extionsion_config()
     " vim-plug {{{2
     let g:plug_window = 'tabnew'
 
+    " undotree {{{2
+    let g:undotree_WindowLayout = 3
+
     " NERDTree {{{2
     let g:NERDTreeStatusline = ''
     let g:NERDTreeShowHidden = 1
@@ -257,18 +394,22 @@ function! s:extionsion_config()
     let g:NERDTreeHijackNetrw = 1
     let g:NERDTreeChDirMode = 1
     let g:NERDTreeShowHidden = 1
-    let g:NERDTreeIgnore = ['\.git/$']
+    let g:NERDTreeIgnore = ['\.git/$', '__pycache__']
     " prevent opening other in nerdtree buffer
     " autocmd BufEnter * if bufname('#') =~# "^NERD_tree_" && winnr('$') > 1 | b# | endif
     command! -n=0 -bar NERDTreeFocusOrClose call s:nerdtree_focus_or_close()
 
     " devicons {{{2
-    let g:webdevicons_conceal_nerdtree_brackets = 1
     let g:WebDevIconsUincodeDecorateFolderNodes = 0
     let g:WebDevIconsNerdTreeGitPluginForceVAlign = 1
     let g:WebDevIconsUnicodeGlyphDoubleWidth = 0
-    let g:WebDevIconsNerdTreeAfterGlyphPadding = ''
+    if has("gui_running")
+        let g:WebDevIconsNerdTreeAfterGlyphPadding = ''
+    else
+        let g:WebDevIconsNerdTreeAfterGlyphPadding = ' '
+    endif
     let g:WebDevIconsTabAirLineBeforeGlyphPadding = ' '
+    let g:webdevicons_conceal_nerdtree_brackets = 1
 
     " nerdtree-git-plugin {{{2
     let g:NERDTreeGitStatusIndicatorMapCustom = {
@@ -300,6 +441,53 @@ function! s:extionsion_config()
     " coc {{{2
     " autocmd BufWritePre *.go :call CocAction('runCommand', 'editor.action.organizeImport')
     " }}}2
+    " leaderf {{{2
+    let g:Lf_StlColorscheme = 'codedark'
+    let g:Lf_PopupColorscheme = 'codedark'
+    let g:Lf_WindowPosition = 'bottom'
+    let g:Lf_DefaultMode = 'Fuzzy'
+    let g:Lf_ReverseOrder = 1
+    let g:Lf_AutoResize = 0
+    let g:Lf_ShowHidden = 1
+    let g:Lf_ShortcutF = '<leader>p'
+    let g:Lf_ShortcutB = '<leader>lb'
+    let g:Lf_PopupHeight = 0.5
+    let g:Lf_StlSeparator = { 'left': '', 'right': '' }
+    let g:Lf_SpinSymbols = [ '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇','⠏' ]
+
+    " <C-C>, <ESC> : quit from LeaderF.
+    " <C-R> : switch between fuzzy search mode and regex mode.
+    " <C-F> : switch between full path search mode and name only search mode.
+    " <Tab> : switch to normal mode.
+    " <C-V>, <S-Insert> : paste from clipboard.
+    " <C-U> : clear the prompt.
+    " <C-W> : delete the word before the cursor in the prompt.
+    " <C-J>, <C-K> : navigate the result list.
+    " <Up>, <Down> : recall last/next input pattern from history.
+    " <2-LeftMouse> or <CR> : open the file under cursor or selected(when multiple files are selected).
+    " <C-X> : open in horizontal split window.
+    " <C-]> : open in vertical split window.
+    " <C-T> : open in new tabpage.
+    " <F5>  : refresh the cache.
+    " <C-LeftMouse> or <C-S> : select multiple files.
+    " <S-LeftMouse> : select consecutive multiple files.
+    " <C-A> : select all files.
+    " <C-L> : clear all selections.
+    " <BS>  : delete the preceding character in the prompt.
+    " <Del> : delete the current character in the prompt.
+    " <Home>: move the cursor to the begin of the prompt.
+    " <End> : move the cursor to the end of the prompt.
+    " <Left>: move the cursor one character to the left.
+    " <Right> : move the cursor one character to the right.
+    " <C-P> : preview the result.
+    " <C-Up> : scroll up in the popup preview window.
+    " <C-Down> : scroll down in the popup preview window.
+    " <C-o> : edit command under cursor. cmdHistory/searchHistory/command only
+    " }}}2
+
+    " indentLine {{{
+    let g:indentLine_setColors = 0
+    let g:indentLine_char = '┊'
 
     " vim-session {{{2
     " }}}2
@@ -322,5 +510,4 @@ source $VIMRUNTIME/delmenu.vim
 let mapleader = ' '
 call s:init()
 " SECTION INITIALIZATION END }}
-
 " vim: set shiftwidth=4 softtabstop=4 expandtab foldmethod=marker foldlevel=1:
