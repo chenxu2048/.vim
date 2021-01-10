@@ -199,7 +199,7 @@ function! s:editor_config()
 
     " set line number
     set number
-    set relativenumber
+    set norelativenumber
 
     " set tab and space
     set smarttab
@@ -214,9 +214,9 @@ function! s:editor_config()
 
     set foldmethod=syntax
     set foldlevel=99
-    set undodir=~/.cache/vim/undo//
-    set backupdir=~/.cache/vim/backup//
-    set directory=~/.cache/vim/swap//
+    set undodir=~/.vim/.cache/undo//
+    set backupdir=~/.vim/.cache/backup//
+    set directory=~/.vim/.cache/swap//
     set undofile
     set undolevels=200
 
