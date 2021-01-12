@@ -163,7 +163,7 @@ function! s:plugin_load() abort
 
         " coc <- coc-fzf
         Plug 'neoclide/coc.nvim', {'branch': 'release'}
-        Plug 'antoinemadec/coc-fzf', {'branch': 'release'}
+        " Plug 'antoinemadec/coc-fzf', {'branch': 'release'}
 
         " vim-misc <- vim-session
         " Plug 'xolox/vim-misc'
@@ -220,7 +220,10 @@ function! s:editor_config()
     set undofile
     set undolevels=200
 
-    set backspace=indent,eol,start
+    " left right arrow cross line
+    set whichwrap=b,s,<,>,[,]
+    " cursor can move over insert position
+    set backspace=indent,eol,nostop
     " set cursor
     set cursorcolumn
     set cursorline
@@ -287,7 +290,8 @@ function! s:keymap_config()
     nmap <C-Return> <Plug>(coc-implementation)
     nmap <Return> <Plug>(coc-hover)
 
-    nnoremap <Leader>cc :CocFzfList<CR>
+    " nnoremap <Leader>cc :CocFzfList<CR>
+    nnoremap <Leader>cc :CocList<CR>
 
     inoremap <silent><expr> <TAB>
         \ pumvisible() ? "\<C-n>" :
@@ -320,10 +324,10 @@ function! s:keymap_config()
     " nnoremap <Leader>p :FZF<CR>
     " nnoremap <Leader>f :Rg<CR>
     " xnoremap <Leader>f <Esc>:Rg <C-R>=<SID>get_visual_selection()<CR><CR>
-    nmap <Leader>zm <Plug>(fzf-maps-n)
-    xmap <Leader>zm <Plug>(fzf-maps-x)
-    imap <Leader>zm <Plug>(fzf-maps-i)
-    nnoremap <Leader>zr :Command<CR>
+    " nmap <Leader>zm <Plug>(fzf-maps-n)
+    " xmap <Leader>zm <Plug>(fzf-maps-x)
+    " imap <Leader>zm <Plug>(fzf-maps-i)
+    " nnoremap <Leader>zr :Command<CR>
     " KEMAP EXTENSION END }}}
 
     " KEYMAP EDITOR {{{
