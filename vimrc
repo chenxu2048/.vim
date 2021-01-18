@@ -407,15 +407,15 @@ function! s:keymap_config()
     noremap <silent> <C-W>7 :tabnext 7<CR>
     noremap <silent> <C-W>8 :tabnext 8<CR>
     noremap <silent> <C-W>9 :tabnext 9<CR>
-    tnoremap <silent> <C-W>1 :tabnext 1<CR>
-    tnoremap <silent> <C-W>2 :tabnext 2<CR>
-    tnoremap <silent> <C-W>3 :tabnext 3<CR>
-    tnoremap <silent> <C-W>4 :tabnext 4<CR>
-    tnoremap <silent> <C-W>5 :tabnext 5<CR>
-    tnoremap <silent> <C-W>6 :tabnext 6<CR>
-    tnoremap <silent> <C-W>7 :tabnext 7<CR>
-    tnoremap <silent> <C-W>8 :tabnext 8<CR>
-    tnoremap <silent> <C-W>9 :tabnext 9<CR>
+    tnoremap <silent> <C-W>1 <C-W>:tabnext 1<CR>
+    tnoremap <silent> <C-W>2 <C-W>:tabnext 2<CR>
+    tnoremap <silent> <C-W>3 <C-W>:tabnext 3<CR>
+    tnoremap <silent> <C-W>4 <C-W>:tabnext 4<CR>
+    tnoremap <silent> <C-W>5 <C-W>:tabnext 5<CR>
+    tnoremap <silent> <C-W>6 <C-W>:tabnext 6<CR>
+    tnoremap <silent> <C-W>7 <C-W>:tabnext 7<CR>
+    tnoremap <silent> <C-W>8 <C-W>:tabnext 8<CR>
+    tnoremap <silent> <C-W>9 <C-W>:tabnext 9<CR>
 
     " KEYMAP EDITOR END }}}
 endfunction
