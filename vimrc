@@ -305,7 +305,6 @@ function! s:keymap_config()
     nmap <C-Return> <Plug>(coc-implementation)
     nmap <Return> <Plug>(coc-hover)
 
-    " nnoremap <Leader>cc :CocFzfList<CR>
     nnoremap <Leader>cc :CocList<CR>
 
     inoremap <silent><expr> <TAB>
@@ -389,6 +388,34 @@ function! s:keymap_config()
     " exit all
     noremap <silent> <Leader><C-q> :<C-U>qa!<CR>
     noremap <silent> <Leader>w :<C-U>w<CR>
+
+    noremap <silent> <Leader>1 :tabnext 1<CR>
+    noremap <silent> <Leader>2 :tabnext 2<CR>
+    noremap <silent> <Leader>3 :tabnext 3<CR>
+    noremap <silent> <Leader>4 :tabnext 4<CR>
+    noremap <silent> <Leader>5 :tabnext 5<CR>
+    noremap <silent> <Leader>6 :tabnext 6<CR>
+    noremap <silent> <Leader>7 :tabnext 7<CR>
+    noremap <silent> <Leader>8 :tabnext 8<CR>
+    noremap <silent> <Leader>9 :tabnext 9<CR>
+    noremap <silent> <C-W>1 :tabnext 1<CR>
+    noremap <silent> <C-W>2 :tabnext 2<CR>
+    noremap <silent> <C-W>3 :tabnext 3<CR>
+    noremap <silent> <C-W>4 :tabnext 4<CR>
+    noremap <silent> <C-W>5 :tabnext 5<CR>
+    noremap <silent> <C-W>6 :tabnext 6<CR>
+    noremap <silent> <C-W>7 :tabnext 7<CR>
+    noremap <silent> <C-W>8 :tabnext 8<CR>
+    noremap <silent> <C-W>9 :tabnext 9<CR>
+    tnoremap <silent> <C-W>1 :tabnext 1<CR>
+    tnoremap <silent> <C-W>2 :tabnext 2<CR>
+    tnoremap <silent> <C-W>3 :tabnext 3<CR>
+    tnoremap <silent> <C-W>4 :tabnext 4<CR>
+    tnoremap <silent> <C-W>5 :tabnext 5<CR>
+    tnoremap <silent> <C-W>6 :tabnext 6<CR>
+    tnoremap <silent> <C-W>7 :tabnext 7<CR>
+    tnoremap <silent> <C-W>8 :tabnext 8<CR>
+    tnoremap <silent> <C-W>9 :tabnext 9<CR>
 
     " KEYMAP EDITOR END }}}
 endfunction
