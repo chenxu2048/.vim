@@ -7,11 +7,15 @@
 "                                                            "
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" SCOPED VARIABLES {{{
+let s:rg_escape_chars = "^$+*?()[]{}\\"
+let s:vim_search_escape_chars = "~^$.*/\\[]"
+" }}}
+
 " UTILITY FUNCTIONS {{{
 " FUNCTION s:get_visual_selection, from xolox: {{{
 "       https://stackoverflow.com/a/6271254
-function! s:get_visual_selection(oneline)
-    " Why is this not a built-in Vim script function?!
+function! s:get_visual_selection(escape_str)
     let [line_start, column_start] = getpos("'<")[1:2]
     let [line_end, column_end] = getpos("'>")[1:2]
     let lines = getline(line_start, line_end)
@@ -20,21 +24,36 @@ function! s:get_visual_selection(oneline)
     endif
     let lines[-1] = lines[-1][: column_end - (&selection == 'inclusive' ? 1 : 2)]
     let lines[0] = lines[0][column_start - 1:]
-    if a:oneline == 1
-        return escape(lines[0], '"')
-    endif
-    return escape(join(lines, "\n"), '"')
+    return escape(lines[0], a:escape_str)
+endfunction
+
+" }}}
+
+" FUNCTION s:get_vim_search_selection {{{
+function s:get_vim_search_selection() abort
+    return s:get_visual_selection(s:vim_search_escape_chars)
+endfunction
+" }}}
+
+" FUNCTION s:get_rg_selection {{{
+function s:get_rg_selection() abort
+    return s:get_visual_selection(s:rg_escape_chars)
 endfunction
 " }}}
 
 " FUNCTION s:run_rg_command run leaderf rg in visual {{{
 function s:run_rg_command(...)
-    let l:selected = s:get_visual_selection(1)
+    let l:escape = s:rg_escape_chars
+    if count(a:000, '-F')
+        let l:escape = ''
+    endif
+    let l:selected = s:get_visual_selection(l:escape)->escape('\"')
     let l:rg = 'rg ' . join(a:000, ' ') . ' -e "' . l:selected . '"'
     let l:glob = get(s:, "rg_glob", [])
     if len(l:glob) != 0
         let l:rg = join([l:rg] + l:glob, " -g ")
     endif
+    let g:rg = l:rg
     call leaderf#Any#start(0, l:rg)
 endfunction
 " }}}
@@ -74,6 +93,12 @@ function s:run_rg_interactive(...)
     finally
         echohl None
     endtry
+endfunction
+" }}}
+
+" FUNCTION s:reset_filetype {{{
+function! s:reset_filetype() abort
+    let &filetype = &filetype
 endfunction
 " }}}
 
@@ -144,12 +169,13 @@ function! s:plugin_load() abort
 
     " vim plugin list {{{
     call plug#begin(l:vim_plug_home)
-        Plug 'chenxu2048/leaderf-enhanced'
         Plug 'Yggdroot/LeaderF', { 'do': ':LeaderfInstallCExtension' }
         Plug 'airblade/vim-gitgutter'
+        Plug 'chenxu2048/leaderf-enhanced'
         Plug 'junegunn/fzf.vim'
         Plug 'junegunn/vim-plug'
         Plug 'mbbill/undotree'
+        Plug 'neoclide/coc.nvim', {'branch': 'release'}
         Plug 'octol/vim-cpp-enhanced-highlight', { 'for': ['cpp', 'c'] }
         Plug 'tomasiser/vim-code-dark'
         Plug 'tpope/vim-surround'
@@ -160,14 +186,6 @@ function! s:plugin_load() abort
         Plug 'preservim/nerdtree'
         Plug 'xuyuanp/nerdtree-git-plugin'
         Plug 'ryanoasis/vim-devicons'
-
-        " coc <- coc-fzf
-        Plug 'neoclide/coc.nvim', {'branch': 'release'}
-        " Plug 'antoinemadec/coc-fzf', {'branch': 'release'}
-
-        " vim-misc <- vim-session
-        " Plug 'xolox/vim-misc'
-        " Plug 'xolox/vim-session'
     call plug#end()
     " }}}
 endfunction
@@ -175,8 +193,8 @@ endfunction
 
 " FUNCTION s:gui_config loads configuration for gvim {{{
 function! s:gui_config()
-    set guifont=NotoMono\ Nerd\ Font\ Mono\ 12
-    set guifontwide=Noto\ Sans\ CJK\ SC\ 12
+    set guifont=Noto\ Sans\ Mono\ 12
+    set guifontwide=Noto\ Sans\ CJK\ SC\ 11 " 测试
     set guioptions=acdiMk
     set guiheadroom=0
 endfunction
@@ -224,12 +242,11 @@ function! s:editor_config()
     set whichwrap=b,s,<,>,[,]
     " cursor can move over insert position
     set backspace=indent,eol,nostop
+    " set pair of %
+    set matchpairs+=<:>
     " set cursor
     set cursorcolumn
     set cursorline
-    " highlight CursorLine   cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
-    " highlight CursorColumn cterm=NONE ctermbg=black ctermfg=NONE guibg=black guifg=NONE
-
     " sync register ", reister + with register 0
     set clipboard^=unnamedplus
     augroup HijackNetrw
@@ -285,8 +302,6 @@ function! s:keymap_config()
     nmap ]e <Plug>(coc-diagnostic-next-error)
     nmap [e <Plug>(coc-diagnostic-prev-error)
 
-    nmap <C-f> <Plug>(coc-format)
-    xmap <C-f> <Plug>(coc-format-selected)
     nmap <C-Return> <Plug>(coc-implementation)
     nmap <Return> <Plug>(coc-hover)
 
@@ -315,19 +330,10 @@ function! s:keymap_config()
     xnoremap <silent> <Leader>R         :<C-U>call <SID>run_rg_command("-w")<CR>
     xnoremap <silent> <Leader>f         :<C-U>call <SID>run_rg_command("-F")<CR>
     xnoremap <silent> <Leader>r         :<C-U>call <SID>run_rg_command()<CR>
-    xnoremap <silent> <Leader>/         :<C-U>Leaderf line --input "<C-R>=<SID>get_visual_selection(1)<CR>"<CR>
-    xnoremap <silent> <Leader>p         :<C-U>Leaderf file --input "<C-R>=<SID>get_visual_selection(1)<CR>"<CR>
+    xnoremap <silent> <Leader>/         :<C-U>Leaderf line --input "<C-R>=<SID>get_visual_selection('"')<CR>"<CR>
+    xnoremap <silent> <Leader>p         :<C-U>Leaderf file --input "<C-R>=<SID>get_visual_selection('"')<CR>"<CR>
 
     noremap <silent> <Leader>lm        :<C-U>Leaderf map<CR>
-
-    " fzf
-    " nnoremap <Leader>p :FZF<CR>
-    " nnoremap <Leader>f :Rg<CR>
-    " xnoremap <Leader>f <Esc>:Rg <C-R>=<SID>get_visual_selection()<CR><CR>
-    " nmap <Leader>zm <Plug>(fzf-maps-n)
-    " xmap <Leader>zm <Plug>(fzf-maps-x)
-    " imap <Leader>zm <Plug>(fzf-maps-i)
-    " nnoremap <Leader>zr :Command<CR>
     " KEMAP EXTENSION END }}}
 
     " KEYMAP EDITOR {{{
@@ -344,6 +350,10 @@ function! s:keymap_config()
     " sort
     vnoremap <C-s> :sort<CR>
     vnoremap <C-r> :sort!<CR>
+
+    " search
+    vnoremap <C-/> <Esc>/<C-R>=<SID>get_vim_search_selection()<CR>
+    vnoremap <C-?> <Esc>?<C-R>=<SID>get_vim_search_selection()<CR>
 
     " unbind navigation keys
     noremap <Up> <Nop>
@@ -374,11 +384,12 @@ function! s:keymap_config()
     nnoremap q <Nop>
 
     " reload vimrc
-    noremap <silent> <Leader><Leader>v :<C-U>source ~/.vim/vimrc<CR>
+    noremap <silent> <Leader><Leader>v :<C-U>source ~/.vim/vimrc<CR>:call <SID>reset_filetype()<CR>
     noremap <silent> <Leader>v :<C-U>tabedit ~/.vim/vimrc<CR>
     " exit all
     noremap <silent> <Leader><C-q> :<C-U>qa!<CR>
     noremap <silent> <Leader>w :<C-U>w<CR>
+
     " KEYMAP EDITOR END }}}
 endfunction
 " }}}
@@ -449,7 +460,7 @@ function! s:extionsion_config()
     let g:Lf_StlColorscheme = 'codedark'
     let g:Lf_PopupColorscheme = 'codedark'
     let g:Lf_WindowPosition = 'bottom'
-    let g:Lf_DefaultMode = 'Fuzzy'
+    let g:Lf_DefaultMode = 'FullPath'
     let g:Lf_ReverseOrder = 1
     let g:Lf_AutoResize = 0
     let g:Lf_ShowHidden = 1
@@ -489,11 +500,6 @@ function! s:extionsion_config()
     " <C-o> : edit command under cursor. cmdHistory/searchHistory/command only
     " }}}2
 
-    " indentLine {{{
-    let g:indentLine_setColors = 0
-    let g:indentLine_char = '┊'
-
-    " vim-session {{{2
     " }}}2
 endfunction
 " }}}1
