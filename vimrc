@@ -8,61 +8,61 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " SCOPED VARIABLES {{{
-let s:rg_escape_chars = "^$+*?()[]{}\\"
-let s:vim_search_escape_chars = "~^$.*/\\[]"
-" }}}
+    let s:rg_escape_chars = "^$+*?()[]{}\\"
+    let s:vim_search_escape_chars = "~^$.*/\\[]"
+    " }}}
 
-" UTILITY FUNCTIONS {{{
-" FUNCTION s:get_visual_selection, from xolox: {{{
-"       https://stackoverflow.com/a/6271254
-function! s:get_visual_selection(escape_str)
-    let [line_start, column_start] = getpos("'<")[1:2]
-    let [line_end, column_end] = getpos("'>")[1:2]
-    let lines = getline(line_start, line_end)
-    if len(lines) == 0
-        return ''
-    endif
-    let lines[-1] = lines[-1][: column_end - (&selection == 'inclusive' ? 1 : 2)]
-    let lines[0] = lines[0][column_start - 1:]
-    return escape(lines[0], a:escape_str)
-endfunction
+    " UTILITY FUNCTIONS {{{
+        " FUNCTION s:get_visual_selection, from xolox: {{{
+            "       https://stackoverflow.com/a/6271254
+            function! s:get_visual_selection(escape_str)
+                let [line_start, column_start] = getpos("'<")[1:2]
+                let [line_end, column_end] = getpos("'>")[1:2]
+                let lines = getline(line_start, line_end)
+                if len(lines) == 0
+                    return ''
+                endif
+                let lines[-1] = lines[-1][: column_end - (&selection == 'inclusive' ? 1 : 2)]
+                let lines[0] = lines[0][column_start - 1:]
+                return escape(lines[0], a:escape_str)
+            endfunction
 
-" }}}
+            " }}}
 
-" FUNCTION s:get_vim_search_selection {{{
-function s:get_vim_search_selection() abort
-    return s:get_visual_selection(s:vim_search_escape_chars)
-endfunction
-" }}}
+            " FUNCTION s:get_vim_search_selection {{{
+                function s:get_vim_search_selection() abort
+                    return s:get_visual_selection(s:vim_search_escape_chars)
+                endfunction
+                " }}}
 
-" FUNCTION s:get_rg_selection {{{
-function s:get_rg_selection() abort
-    return s:get_visual_selection(s:rg_escape_chars)
-endfunction
-" }}}
+                " FUNCTION s:get_rg_selection {{{
+                    function s:get_rg_selection() abort
+                        return s:get_visual_selection(s:rg_escape_chars)
+                    endfunction
+                    " }}}
 
-" FUNCTION s:run_rg_command run leaderf rg in visual {{{
-function s:run_rg_command(...)
-    let l:escape = s:rg_escape_chars
-    if count(a:000, '-F')
-        let l:escape = ''
-    endif
-    let l:selected = s:get_visual_selection(l:escape)->escape('\"')
-    let l:rg = 'rg ' . join(a:000, ' ') . ' -e "' . l:selected . '"'
-    let l:glob = get(s:, "rg_glob", [])
-    if len(l:glob) != 0
-        let l:rg = join([l:rg] + l:glob, " -g ")
-    endif
-    let g:rg = l:rg
-    call leaderf#Any#start(0, l:rg)
-endfunction
-" }}}
+                    " FUNCTION s:run_rg_command run leaderf rg in visual {{{
+                        function s:run_rg_command(...)
+                            let l:escape = s:rg_escape_chars
+                            if count(a:000, '-F')
+                                let l:escape = ''
+                            endif
+                            let l:selected = s:get_visual_selection(l:escape)->escape('\"')
+                            let l:rg = 'rg ' . join(a:000, ' ') . ' -e "' . l:selected . '"'
+                            let l:glob = get(s:, "rg_glob", [])
+                            if len(l:glob) != 0
+                                let l:rg = join([l:rg] + l:glob, " -g ")
+                            endif
+                            let g:rg = l:rg
+                            call leaderf#Any#start(0, l:rg)
+                        endfunction
+                        " }}}
 
-" FUNCTION s:set_rg_glob set leaderf rg file pattern {{{
-function s:set_rg_glob()
-    let l:prev = get(s:, "rg_glob_raw", "*")
-    let l:glob = input("Setting rg glob filter: ", l:prev)
-    if l:glob =~ '^\s*$'
+                        " FUNCTION s:set_rg_glob set leaderf rg file pattern {{{
+                            function s:set_rg_glob()
+                                let l:prev = get(s:, "rg_glob_raw", "*")
+                                let l:glob = input("Setting rg glob filter: ", l:prev)
+                                if l:glob =~ '^\s*$'
         let s:rg_glob = []
         let s:rg_glob_raw = "*"
         return
@@ -193,7 +193,9 @@ endfunction
 
 " FUNCTION s:gui_config loads configuration for gvim {{{
 function! s:gui_config()
-    set guifont=Noto\ Sans\ Mono\ 12
+    " set guifont=Noto\ Sans\ Mono\ 12
+    noremap <Leader>` :<C-U>set guifont=Noto\ Sans\ Mono\ 12<CR>
+    set guifont=Symbols\ Nerd\ Font\ Vim\ 12
     set guifontwide=Noto\ Sans\ CJK\ SC\ 11 " 测试
     set guioptions=acdiMk
     set guiheadroom=0
