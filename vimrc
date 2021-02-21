@@ -299,6 +299,8 @@ function! s:keymap_config()
     nmap <Leader>gr <Plug>(coc-references)
     nmap <Leader>gd <Plug>(coc-definition)
     nmap <Leader>gi <Plug>(coc-implementation)
+    noremap ]w :<C-U>call CocActionAsync('diagnosticNext', 'warning')<CR>
+    noremap [w :<C-U>call CocActionAsync('diagnosticPrevious', 'warning')<CR>
     nmap ]e <Plug>(coc-diagnostic-next-error)
     nmap [e <Plug>(coc-diagnostic-prev-error)
 
@@ -437,6 +439,8 @@ function! s:extionsion_config()
     let g:NERDTreeChDirMode = 1
     let g:NERDTreeShowHidden = 1
     let g:NERDTreeIgnore = ['\.git/$', '__pycache__']
+    let g:NERDTreeDirArrowExpandable = "🢒"
+    let g:NERDTreeDirArrowCollapsible = "▾"
     " prevent opening other in nerdtree buffer
     " autocmd BufEnter * if bufname('#') =~# "^NERD_tree_" && winnr('$') > 1 | b# | endif
     command! -n=0 -bar NERDTreeFocusOrClose call s:nerdtree_focus_or_close()
