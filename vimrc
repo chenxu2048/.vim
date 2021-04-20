@@ -487,7 +487,11 @@ function! s:extionsion_config()
     let g:airline#extensions#tabline#show_buffers = 0
 
     " coc {{{2
-    " autocmd BufWritePre *.go :call CocAction('runCommand', 'editor.action.organizeImport')
+    augroup CocOrganizeImport
+        autocmd BufWritePre *.go :call CocActionAsync('runCommand', 'editor.action.organizeImport')
+    augroup END
+
+    let g:coc_borderchars = ["╌", "╎", "╌", "╎", "┌", "┐", "┘", "└"]
     " }}}2
     " leaderf {{{2
     let g:Lf_StlColorscheme = 'codedark'
