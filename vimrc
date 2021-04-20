@@ -191,17 +191,6 @@ function! s:plugin_load() abort
 endfunction
 " }}}
 
-" FUNCTION s:gui_config loads configuration for gvim {{{
-function! s:gui_config()
-    " set guifont=Noto\ Sans\ Mono\ 12
-    noremap <Leader>` :<C-U>set guifont=Noto\ Sans\ Mono\ 12<CR>
-    set guifont=Symbols\ Nerd\ Font\ Vim\ 12
-    set guifontwide=Noto\ Sans\ CJK\ SC\ 11 " 测试
-    set guioptions=acdiMk
-    set guiheadroom=0
-endfunction
-" }}}
-
 " FUNCTION s:editor_config loads configuration for vim editor {{{
 function! s:editor_config()
     set encoding=utf-8
@@ -234,16 +223,16 @@ function! s:editor_config()
 
     set foldmethod=syntax
     set foldlevel=99
-    set undodir=~/.vim/.cache/undo//
-    set backupdir=~/.vim/.cache/backup//
-    set directory=~/.vim/.cache/swap//
+    set undodir=$VIMHOME/.cache/undo//
+    set backupdir=$VIMHOME/.cache/backup//
+    set directory=$VIMHOME/.cache/swap//
     set undofile
     set undolevels=200
 
     " left right arrow cross line
     set whichwrap=b,s,<,>,[,]
     " cursor can move over insert position
-    set backspace=indent,eol,nostop
+    set backspace=indent,eol,start
     " set pair of %
     set matchpairs+=<:>
     " set cursor
@@ -259,7 +248,11 @@ function! s:editor_config()
     augroup LargeFile
         au BufReadPre * call <SID>check_large_file(g:large_file)
     augroup END
-    autocmd TerminalOpen * setlocal nonumber norelativenumber
+    if has('nvim')
+        autocmd TermOpen * setlocal nonumber norelativenumber
+    else
+        autocmd TerminalOpen * setlocal nonumber norelativenumber
+    endif
 endfunction
 " }}}
 
@@ -552,13 +545,11 @@ function! s:init() abort
     call s:extionsion_config()
     call s:plugin_load()
     call s:keymap_config()
-    call s:gui_config()
     call s:editor_config()
 endfunction
 " }}}
 
 " SECTION INITIALIZATION {{{
-source $VIMRUNTIME/delmenu.vim
 let mapleader = ' '
 let $VIMHOME=expand('<sfile>:p:h')
 call s:init()
