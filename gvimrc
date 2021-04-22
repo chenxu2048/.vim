@@ -1,27 +1,35 @@
+if has("win32")
+    let g:guifont = ['Consolas NF', 14]
+    let g:guifontwide = ['Microsoft YaHei', 14] " 测试中文
+else
+    let g:guifont = ['Consolas NF', 14]
+    let g:guifontwide = ['Noto Sans CJK SC', 13]
+endif
+
+function! s:format_font(font, size) abort
+    if has("win32") || has("nvim")
+        return substitute(a:font . ":h" . a:size, " ", "\\\\ ", "g")
+    endif
+    return substitute(a:font . " " . a:size, " ", "\\\\ ", "g")
+endfunction
+
+function! s:gui_font() abort
+    let [font, size] = g:guifont
+    execute "set guifont+=" . s:format_font(font, size)
+    let [font, size] = g:guifontwide
+    execute "set guifontwide+=" . s:format_font(font, size)
+endfunction
+
 " FUNCTION s:gui_config loads configuration for gvim or nvim-qt {{{
 function! s:gui_config()
     if has('nvim')
-        if exists(':GuiFont')
-            GuiFont! Consolas\ NF:h12
-        endif
-        if exists(':GuiTabline')
+        " for nvim-qt
+        if exists(":GuiFont")
             GuiTabline 0
-        endif
-        if exists(':GuiPopupmenu')
             GuiPopupmenu 0
-        endif
-        if exists(':GuiScrollBar')
             GuiScrollBar 0
         endif
-        if exists(':GuiAdaptiveColor')
-            GuiAdaptiveColor 1
-        endif
-        set guifontwide=Noto\ Sans\ CJK\ SC\ 11 " 测试
     else
-        " set guifont=Noto\ Sans\ Mono\ 12
-        noremap <Leader>` :<C-U>set guifont=Noto\ Sans\ Mono\ 12<CR>
-        set guifont=Symbols\ Nerd\ Font\ Vim\ 12
-        set guifontwide=Noto\ Sans\ CJK\ SC\ 11 " 测试
         set guioptions=acdiMk
         set guiheadroom=0
     endif
@@ -31,6 +39,7 @@ endfunction
 function! s:ginit() abort
     source $VIMRUNTIME/delmenu.vim
     call s:gui_config()
+    call s:gui_font()
 endfunction
 
 call s:ginit()
