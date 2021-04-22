@@ -36,9 +36,6 @@ function! s:gui_config()
 endfunction
 " }}}
 
-function! s:neovide_init() abort
-endif
-
 function! s:ginit() abort
     source $VIMRUNTIME/delmenu.vim
     call s:gui_config()
@@ -48,4 +45,7 @@ function! s:ginit() abort
     endif
 endfunction
 
-call s:ginit()
+try
+    call s:ginit()
+catch
+endtry
