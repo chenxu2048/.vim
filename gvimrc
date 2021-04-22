@@ -36,10 +36,16 @@ function! s:gui_config()
 endfunction
 " }}}
 
+function! s:neovide_init() abort
+endif
+
 function! s:ginit() abort
     source $VIMRUNTIME/delmenu.vim
     call s:gui_config()
     call s:gui_font()
+    if exists("g:neovide_refresh_rate")
+        call s:neovide_init()
+    endif
 endfunction
 
 call s:ginit()
