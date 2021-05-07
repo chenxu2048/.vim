@@ -47,7 +47,7 @@ function s:run_rg_command(...)
     if count(a:000, '-F')
         let l:escape = ''
     endif
-    let l:selected = s:get_visual_selection(l:escape)->escape('\"')
+    let l:selected = escape(s:get_visual_selection(l:escape), '\"')
     let l:rg = 'rg ' . join(a:000, ' ') . ' -e "' . l:selected . '"'
     let l:glob = get(s:, "rg_glob", [])
     if len(l:glob) != 0
@@ -85,7 +85,7 @@ function s:run_rg_interactive(...)
             let l:rg_cmd += [ '-e', '"' . l:pattern . '"']
         endif
         if len(l:glob) != 0
-            let l:glob_args = l:glob->copy()->map({_, val -> [ '-g', val ]})
+            let l:glob_args = map(copy(l:glob), {_, val -> [ '-g', val ]})
             let l:rg_cmd += flatten(l:glob_args)
             let g:rg_cmd = l:rg_cmd
         endif
@@ -143,6 +143,10 @@ function! s:check_large_file(large_file)
     if getfsize(l:filename) > a:large_file
         set eventignore+=FileType
         setlocal noswapfile bufhidden=unload buftype=nowrite undolevels=-1
+        if has('nvim')
+            set inccommand=""
+        endif
+        set noincsearch
     else
         set eventignore-=FileType
     endif
@@ -172,7 +176,7 @@ function! s:plugin_load() abort
         Plug 'Yggdroot/LeaderF', { 'do': ':LeaderfInstallCExtension' }
         Plug 'airblade/vim-gitgutter'
         Plug 'chenxu2048/leaderf-enhanced'
-        Plug 'junegunn/fzf.vim'
+        Plug 'chenxu2048/coc-leaderf'
         Plug 'junegunn/vim-plug'
         Plug 'mbbill/undotree'
         Plug 'neoclide/coc.nvim', {'branch': 'release'}
@@ -186,6 +190,8 @@ function! s:plugin_load() abort
         Plug 'preservim/nerdtree'
         Plug 'xuyuanp/nerdtree-git-plugin'
         Plug 'ryanoasis/vim-devicons'
+
+        Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install'  }
     call plug#end()
     " }}}
 endfunction
@@ -218,6 +224,7 @@ function! s:editor_config()
     set shiftwidth=4
 
     set incsearch
+    set hlsearch
     set showcmd
     set hidden
 
@@ -240,6 +247,7 @@ function! s:editor_config()
     set cursorline
     " sync register ", reister + with register 0
     set clipboard^=unnamedplus
+
     augroup HijackNetrw
         autocmd BufEnter,VimEnter * call <SID>hijack_and_cd(expand('<amatch>'))
     augroup END
@@ -250,6 +258,7 @@ function! s:editor_config()
     augroup END
     if has('nvim')
         autocmd TermOpen * setlocal nonumber norelativenumber
+        set inccommand=nosplit
     else
         autocmd TerminalOpen * setlocal nonumber norelativenumber
     endif
@@ -289,7 +298,7 @@ function! s:keymap_config()
     nmap <Leader>cr <Plug>(coc-rename)
     nmap <Leader>cf <Plug>(coc-format)
     xmap <Leader>cf <Plug>(coc-format-selected)
-    nmap <Leader>co :call CocAction('runCommand', 'editor.action.organizeImport')<CR>
+    nmap <Leader>co :call CocActionAsync('runCommand', 'editor.action.organizeImport')<CR>
     nmap <Leader>gt <Plug>(coc-type-definiction)
     nmap <Leader>gr <Plug>(coc-references)
     nmap <Leader>gd <Plug>(coc-definition)
@@ -313,8 +322,8 @@ function! s:keymap_config()
 
     nnoremap <nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
     nnoremap <nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
-        inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
-              inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
+    inoremap <nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
+    inoremap <nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
 
     " LeaderF
     nnoremap <silent> <Leader><Leader>f :<C-U>call <SID>set_rg_glob()<CR>
@@ -324,6 +333,7 @@ function! s:keymap_config()
     nnoremap <silent> <Leader>lc        :<C-U>LeaderfCommand<CR>
     nnoremap <silent> <Leader>lw        :<C-U>LeaderfWindow<CR>
     nnoremap <silent> <leader>lh        :<C-U>LeaderfHelp<CR>
+    nnoremap <silent> <leader>lr        :<C-U>Leaderf register<CR>
     nnoremap <silent> <Leader>p         :<C-U>LeaderfFile<CR>
     nnoremap <silent> <leader>/         :<C-U>LeaderfLine<CR>
 
@@ -356,25 +366,28 @@ function! s:keymap_config()
     vnoremap <C-/> <Esc>/<C-R>=<SID>get_vim_search_selection()<CR>
     vnoremap <C-?> <Esc>?<C-R>=<SID>get_vim_search_selection()<CR>
 
+    " close search highlight
+    noremap <Leader><Esc> :<C-U>let @/ = ""<CR>
+
     " unbind navigation keys
-    noremap <Up> <Nop>
-    noremap <Down> <Nop>
-    noremap <Left> <Nop>
-    noremap <Right> <Nop>
-    noremap <C-Left> <Nop>
-    noremap <C-Right> <Nop>
-    noremap <S-Left> <Nop>
-    noremap <S-Right> <Nop>
-    noremap <PageUp> <Nop>
-    noremap <PageDown> <Nop>
+    noremap <Up>        <Nop>
+    noremap <Down>      <Nop>
+    noremap <Left>      <Nop>
+    noremap <Right>     <Nop>
+    noremap <C-Left>    <Nop>
+    noremap <C-Right>   <Nop>
+    noremap <S-Left>    <Nop>
+    noremap <S-Right>   <Nop>
+    noremap <PageUp>    <Nop>
+    noremap <PageDown>  <Nop>
 
     nnoremap <C-P> gT
     nnoremap <C-N> gt
 
-    nnoremap <C-Right> <C-w>l
-    nnoremap <C-Left> <C-w>h
-    nnoremap <C-Up> <C-w>k
-    nnoremap <C-Down> <C-w>j
+    nnoremap <C-Right>  <C-w>l
+    nnoremap <C-Left>   <C-w>h
+    nnoremap <C-Up>     <C-w>k
+    nnoremap <C-Down>   <C-w>j
 
     " I hate Q to Ex mode :-\
     nnoremap <Leader><Leader>Q Q
@@ -409,15 +422,47 @@ function! s:keymap_config()
     noremap <silent> <C-W>7 :tabnext 7<CR>
     noremap <silent> <C-W>8 :tabnext 8<CR>
     noremap <silent> <C-W>9 :tabnext 9<CR>
-    tnoremap <silent> <C-W>1 <C-W>:tabnext 1<CR>
-    tnoremap <silent> <C-W>2 <C-W>:tabnext 2<CR>
-    tnoremap <silent> <C-W>3 <C-W>:tabnext 3<CR>
-    tnoremap <silent> <C-W>4 <C-W>:tabnext 4<CR>
-    tnoremap <silent> <C-W>5 <C-W>:tabnext 5<CR>
-    tnoremap <silent> <C-W>6 <C-W>:tabnext 6<CR>
-    tnoremap <silent> <C-W>7 <C-W>:tabnext 7<CR>
-    tnoremap <silent> <C-W>8 <C-W>:tabnext 8<CR>
-    tnoremap <silent> <C-W>9 <C-W>:tabnext 9<CR>
+
+    if has('nvim')
+        tnoremap <silent> <Plug>TermTab1 <C-\><C-N>:<C-U>tabnext 1<CR>
+        tnoremap <silent> <Plug>TermTab2 <C-\><C-N>:<C-U>tabnext 2<CR>
+        tnoremap <silent> <Plug>TermTab3 <C-\><C-N>:<C-U>tabnext 3<CR>
+        tnoremap <silent> <Plug>TermTab4 <C-\><C-N>:<C-U>tabnext 4<CR>
+        tnoremap <silent> <Plug>TermTab5 <C-\><C-N>:<C-U>tabnext 5<CR>
+        tnoremap <silent> <Plug>TermTab6 <C-\><C-N>:<C-U>tabnext 6<CR>
+        tnoremap <silent> <Plug>TermTab7 <C-\><C-N>:<C-U>tabnext 7<CR>
+        tnoremap <silent> <Plug>TermTab8 <C-\><C-N>:<C-U>tabnext 8<CR>
+        tnoremap <silent> <Plug>TermTab9 <C-\><C-N>:<C-U>tabnext 9<CR>
+        tnoremap <silent> <Plug>TermEsc <C-\><C-N>
+        tnoremap <silent> <Plug>TermSlash <C-\><C-\>
+    else
+        tnoremap <silent> <Plug>TermTab1 <C-W>N:<C-U>tabnext 1<CR>
+        tnoremap <silent> <Plug>TermTab2 <C-W>N:<C-U>tabnext 2<CR>
+        tnoremap <silent> <Plug>TermTab3 <C-W>N:<C-U>tabnext 3<CR>
+        tnoremap <silent> <Plug>TermTab4 <C-W>N:<C-U>tabnext 4<CR>
+        tnoremap <silent> <Plug>TermTab5 <C-W>N:<C-U>tabnext 5<CR>
+        tnoremap <silent> <Plug>TermTab6 <C-W>N:<C-U>tabnext 6<CR>
+        tnoremap <silent> <Plug>TermTab7 <C-W>N:<C-U>tabnext 7<CR>
+        tnoremap <silent> <Plug>TermTab8 <C-W>N:<C-U>tabnext 8<CR>
+        tnoremap <silent> <Plug>TermTab9 <C-W>N:<C-U>tabnext 9<CR>
+        tnoremap <silent> <Plug>TermEsc <C-W>N
+        tnoremap <silent> <Plug>TermSlash <C-W><C-\>
+
+        tnoremap <silent> <C-W> <C-W>.
+    endif
+
+    tmap <silent> <C-Space>1 <Plug>TermTab1
+    tmap <silent> <C-Space>2 <Plug>TermTab2
+    tmap <silent> <C-Space>3 <Plug>TermTab3
+    tmap <silent> <C-Space>4 <Plug>TermTab4
+    tmap <silent> <C-Space>5 <Plug>TermTab5
+    tmap <silent> <C-Space>6 <Plug>TermTab6
+    tmap <silent> <C-Space>7 <Plug>TermTab7
+    tmap <silent> <C-Space>8 <Plug>TermTab8
+    tmap <silent> <C-Space>9 <Plug>TermTab9
+    tmap <silent> <C-Esc>    <Plug>TermEsc
+    tmap <silent> <C-\>      <Plug>TermSlash
+    tmap <silent> <C-V> <Plug>TermEsc"+p
 
     " KEYMAP EDITOR END }}}
 endfunction
