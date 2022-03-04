@@ -1,6 +1,9 @@
 if has("win32")
     let g:guifont = ['Consolas NF', 14]
     let g:guifontwide = ['Microsoft YaHei', 14] " 测试中文
+elseif has("macunix")
+    let g:guifont = ['FiraCode NF', 14]
+    let g:guifontwide = ['Heiti SC', 14]
 else
     let g:guifont = ['Consolas NF', 14]
     let g:guifontwide = ['Noto Sans CJK SC', 13]
@@ -28,24 +31,28 @@ function! s:gui_config()
             GuiTabline 0
             GuiPopupmenu 0
             GuiScrollBar 0
+            GuiRenderLigatures 1
+            map <D-f> :<C-U>call g:GuiWindowFullScreen(!g:GuiWindowFullScreen)<CR>
         endif
     else
         set guioptions=acdiMk
         set guiheadroom=0
     endif
+    set title
 endfunction
 " }}}
 
-function! s:ginit() abort
-    source $VIMRUNTIME/delmenu.vim
-    call s:gui_config()
-    call s:gui_font()
-    if exists("g:neovide_refresh_rate")
-        call s:neovide_init()
-    endif
+" FUNCTION s:gui_running set g:has_gui_running while GUIEnter. has('gui_running')
+"   cannot be used in nvim.
+function! s:gui_running()
+    autocmd GUIEnter * let g:has_gui_running = 1
 endfunction
 
-try
-    call s:ginit()
-catch
-endtry
+function! s:ginit() abort
+    source $VIMRUNTIME/delmenu.vim
+    call s:gui_running()
+    call s:gui_config()
+    call s:gui_font()
+endfunction
+
+call s:ginit()
