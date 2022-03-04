@@ -446,7 +446,7 @@ function! s:keymap_config()
 
     " KEYMAP floaterm {{{
     nnoremap <silent> <Leader>`         :<C-U>FloatermToggle<CR>
-    nnoremap <silent> <Leader><Leader>` :<C-U>FloatermNew<CR>
+    nnoremap <silent> <Leader>~ :<C-U>FloatermNew<CR>
     tmap <silent> <C-X>                 <Plug>TermEsc:<C-U>FloatermHide<CR>
     tmap <silent> <M-Up>                <Plug>TermEsc:<C-U>FloatermPrev<CR>
     tmap <silent> <M-Down>              <Plug>TermEsc:<C-U>FloatermNext<CR>
@@ -742,6 +742,9 @@ function! s:highlight() abort
     highlight SignifySignAdd    gui=bold guifg=LightGreen term=bold ctermfg=LightGreen
     highlight SignifySignDelete gui=bold guifg=Red term=bold ctermfg=Red
     highlight SignifySignChange gui=bold guifg=Yellow term=bold ctermfg=Yellow
+    highlight SignifyLineAdd    gui=bold guibg=#264F78 term=bold ctermbg=24
+    highlight SignifyLineDelete gui=bold guibg=#4B1818 term=bold ctermbg=52
+    highlight SignifyLineChange gui=bold guibg=#4B5632 term=bold ctermbg=58
 endfunction
 " }}}
 
