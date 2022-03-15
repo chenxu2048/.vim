@@ -199,7 +199,7 @@ function! s:plugin_load() abort
         Plug 'octol/vim-cpp-enhanced-highlight', { 'for': ['cpp', 'c'] }
         Plug 'tomasiser/vim-code-dark'
         Plug 'tpope/vim-surround'
-        Plug 'yianwillis/vimcdoc'
+        " Plug 'yianwillis/vimcdoc'
         Plug 'voldikss/vim-floaterm'
         " Plug 'voldikss/LeaderF-floaterm'
         Plug 'mg979/vim-visual-multi', {'branch': 'master'}
@@ -745,6 +745,7 @@ function! s:highlight() abort
     highlight SignifyLineAdd    gui=bold guibg=#264F78 term=bold ctermbg=24
     highlight SignifyLineDelete gui=bold guibg=#4B1818 term=bold ctermbg=52
     highlight SignifyLineChange gui=bold guibg=#4B5632 term=bold ctermbg=58
+    highlight NonText           ctermfg=240 ctermbg=None guifg=#5A5A5A guibg=None
 endfunction
 " }}}
 
