@@ -10,12 +10,12 @@ function! s:set_if_linux_source() abort
     let path = '%:p:h'
     while v:true
         let dir = expand(path)
-        if dir ==? '/' || dir ==? cwd
-            break
-        endif
         let kbuild = dir. '/Kbuild'
         if filereadable(kbuild)
             call s:set_linux_source()
+            break
+        endif
+        if dir ==? '/' || dir ==? cwd
             break
         endif
         let path = path . ':h'

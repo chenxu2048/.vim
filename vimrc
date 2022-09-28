@@ -1,4 +1,4 @@
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "         __  ___   _ _ ____   __     _____ __  __           "
 "         \ \/ / | | ( ) ___|  \ \   / /_ _|  \/  |          "
 "          \  /| | | |/\___ \   \ \ / / | || |\/| |          "
@@ -189,8 +189,9 @@ function! s:plugin_load() abort
 
     " vim plugin list {{{
     call plug#begin(l:vim_plug_home)
+        " Plug 'github/copilot.vim'
         Plug 'Yggdroot/LeaderF', { 'do': ':LeaderfInstallCExtension' }
-        Plug 'mhinz/vim-signify'
+        " Plug 'mhinz/vim-signify'
         Plug 'chenxu2048/leaderf-enhanced'
         " Plug 'chenxu2048/coc-leaderf'
         Plug 'junegunn/vim-plug'
@@ -215,6 +216,7 @@ function! s:plugin_load() abort
         Plug 'udalov/kotlin-vim', { 'for': ['kotlin'] }
         Plug 'skywind3000/asynctasks.vim'
         Plug 'skywind3000/asyncrun.vim'
+        Plug 'easymotion/vim-easymotion'
     call plug#end()
     " }}}
 endfunction
@@ -316,6 +318,9 @@ function! s:editor_config()
             autocmd TermOpen * autocmd BufWinEnter <buffer> set mouse=a
             " set mouse off while term buffer exit
             autocmd TermOpen * autocmd BufWinLeave <buffer> set mouse=
+
+            " remove q as record
+            autocmd TermOpen * nmap <buffer> q <Esc>i
         augroup END
     else
         augroup TermNoNumber
@@ -327,6 +332,9 @@ function! s:editor_config()
             autocmd TerminalOpen * autocmd BufWinEnter <buffer> set mouse=a
             " set mouse off while term buffer exit
             autocmd TerminalOpen * autocmd BufWinLeave <buffer> set mouse=
+            "
+            " remove q as record
+            autocmd TerminalOpen * nmap <buffer> q <Esc>i
         augroup END
     endif
 endfunction
@@ -335,6 +343,13 @@ endfunction
 " FUNCTION s:keymap_config defines keymaps {{{
 function! s:keymap_config()
     " KEYMAP EXTENSION {{{
+    " copilot
+    nmap <Leader>ne :<C-U>Copilot enable<CR>
+    nmap <Leader>nd :<C-U>Copilot disable<CR>
+
+    " easymotion
+    map <Leader>s <Plug>(easymotion-prefix)
+
     " asyncrun & asynctasks
     noremap <Leader>jl :Leaderf --nowrap task<CR>
     noremap <Leader>je :AsyncTaskEdit<CR>
@@ -377,7 +392,8 @@ function! s:keymap_config()
     vmap <Leader>cf <Plug>(coc-format-selected)
     vmap <Leader>ca <Plug>(coc-codeaction)
     nmap <Leader>ca <Plug>(coc-codeaction-selected)
-    nmap <Leader>co :<C-U>call CocActionAsync('runCommand', 'editor.action.organizeImport')<CR>
+    nmap <Leader>ci :<C-U>call CocActionAsync('runCommand', 'editor.action.organizeImport')<CR>
+    nmap <Leader>co :<C-U>CocOutline<CR>
     nmap <Leader>cu :<C-U>CocUpdate<CR>
     nmap <Leader>cx :<C-U>CocRestart<CR><CR>
     nmap <Leader>ce :<C-U>CocConfig<CR>
@@ -398,11 +414,17 @@ function! s:keymap_config()
     nnoremap <Leader>cc :CocList<CR>
 
     inoremap <silent><expr> <TAB>
-        \ pumvisible() ? "\<C-n>" :
-        \ <SID>check_back_space() ? "\<TAB>" :
-        \ coc#refresh()
-    inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
-    inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+          \ coc#pum#visible() ? coc#pum#next(1) :
+          \ <SID>check_back_space() ? "\<Tab>" :
+          \ coc#refresh()
+    inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+    inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                                  \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+    if has('nvim')
+      inoremap <silent><expr> <c-space> coc#refresh()
+    else
+      inoremap <silent><expr> <c-@> coc#refresh()
+    endif
 
     if has('nvim-0.4.0') || has('patch-8.2.0750')
         nnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
@@ -608,6 +630,8 @@ endfunction
 
 " FUNCTION s:extionsion_config loads configuration for extensions {{{1
 function! s:extionsion_config()
+    " copilot
+    let g:copilot_enabled = 0
     " asyncrun
     let g:asyncrun_open = &lines / 3
     let g:asynctasks_confirm = 0
@@ -677,8 +701,8 @@ function! s:extionsion_config()
     " coc {{{2
     augroup CocOrganizeImport
         autocmd!
-        autocmd BufWritePre *.go :silent call CocAction('runCommand', 'editor.action.organizeImport')
-        autocmd BufWritePre *.go :call CocAction('format')
+        autocmd BufWritePre *.c,*.go,*.rs,*.py :call CocAction('format')
+        " autocmd BufWritePre *.c,*.go,*.rs,*.py :silent call CocAction('runCommand', 'editor.action.organizeImport')
     augroup END
 
     if !has('macunix')
@@ -746,6 +770,8 @@ function! s:highlight() abort
     highlight SignifyLineDelete gui=bold guibg=#4B1818 term=bold ctermbg=52
     highlight SignifyLineChange gui=bold guibg=#4B5632 term=bold ctermbg=58
     highlight NonText           ctermfg=240 ctermbg=None guifg=#5A5A5A guibg=None
+
+    highlight CocInlayHint      ctermfg=67 guifg=#4B78A3
 endfunction
 " }}}
 
